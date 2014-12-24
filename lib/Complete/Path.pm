@@ -1,0 +1,207 @@
+package Complete::Path;
+
+# DATE
+# VERSION
+
+use 5.010001;
+use strict;
+use warnings;
+
+use Complete;
+
+require Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(
+                       complete_path
+               );
+
+our %SPEC;
+
+$SPEC{complete_path} = {
+    v => 1.1,
+    summary => 'Complete path',
+    description => <<'_',
+
+Complete path, for anything path-like. Meant to be used as backend for other
+functions like `Complete::Util::complete_file` or
+`Complete::Module::complete_module`. Provides features like case-insensitive
+matching, expanding intermediate paths, and case mapping.
+
+Algorithm is to split path into path elements, listing (using the supplied
+`list_func`) and perform filtering (using the supplied `filter_func`) at every
+level.
+
+_
+    args => {
+        word => {
+            schema  => [str=>{default=>''}],
+            pos     => 0,
+        },
+        path_sep => {
+            schema  => ['any*' => of => ['str*', 'regex*']],
+            default => '/',
+        },
+        list_func => {
+            schema => 'code*',
+            req => 1,
+            description => <<'_',
+
+Code will be called with arguments: XXX.
+
+Code should return an arrayref containing list of elements. "Directories" should
+be suffixed with the path separator character, e.g. `['file1','dir1/',
+'dir2/']`.
+
+_
+        },
+        filter_func => {
+            schema  => 'code*',
+            req => 1,
+        },
+        ci => {
+            summary => 'Case-insensitive matching',
+            schema  => 'bool',
+        },
+        map_case => {
+            summary => 'Treat _ (underscore) and - (dash) as the same',
+            schema  => 'bool',
+            description => <<'_',
+
+This is another convenience option like `ci`, where you can type `-` (without
+pressing Shift, at least in US keyboard) and can still complete `_` (underscore,
+which is typed by pressing Shift, at least in US keyboard).
+
+This option mimics similar option in bash/readline: `completion-map-case`.
+
+_
+        },
+        exp_im_path => {
+            summary => 'Expand intermediate paths',
+            schema  => 'bool',
+            description => <<'_',
+
+This option mimics feature in zsh where when you type something like `cd
+/h/u/b/myscript` and get `cd /home/ujang/bin/myscript` as a completion answer.
+
+_
+        },
+        #result_prefix => {
+        #    summary => 'Prefix each result with this string',
+        #    schema  => 'str*',
+        #},
+    },
+    result_naked => 1,
+    result => {
+        schema => 'array',
+    },
+};
+sub complete_path {
+    my %args   = @_;
+    my $word   = $args{word} // "";
+    my $path_sep = $args{path_sep} // '/';
+    my $list_func   = $args{list_func};
+    my $filter_func = $args{filter_func};
+    my $ci          = $args{ci} // $Complete::OPT_CI;
+    my $map_case    = $args{map_case} // $Complete::OPT_MAP_CASE;
+    my $exp_im_path = $args{exp_im_path} // $Complete::OPT_EXP_IM_PATH;
+    #my $result_prefix = $args{result_prefix};
+
+    # split word by into path elements, as we want to dig level by level (needed
+    # when doing case-insensitive search on a case-sensitive tree).
+    my @intermediate_dirs;
+    {
+        my $path_sep_re =
+            ref($path_sep) eq 'Regexp' ? $path_sep : qr/(?:\Q$path_sep\E)+/;
+        @intermediate_dirs = split $path_sep_re, $word;
+        @intermediate_dirs = ('') if !@intermediate_dirs;
+        push @intermediate_dirs, '' if $word =~ m!$path_sep_re\z!;
+    }
+
+    # extract leaf path, because this one is treated differently
+    my $leaf = pop @intermediate_dirs;
+    @intermediate_dirs = ('') if !@intermediate_dirs;
+
+    #say "D:intermediate_dirs=[",join(", ", map{"<$_>"} @intermediate_dirs),"]";
+    #say "D:leaf=<$leaf>";
+
+    # candidate for intermediate paths. when doing case-insensitive search,
+    # there maybe multiple candidate paths for each dir, for example if
+    # word='../foo/s' and there is '../foo/Surya', '../Foo/sri', '../FOO/SUPER'
+    # then candidate paths would be ['../foo', '../Foo', '../FOO'] and the
+    # filename should be searched inside all those dirs. everytime we drill down
+    # to deeper subdirectories, we adjust this list by removing
+    # no-longer-eligible candidates.
+    my @candidate_paths;
+
+    for my $i (0..$#intermediate_dirs) {
+        my $intdir = $intermediate_dirs[$i];
+        my @dirs;
+        if ($i == 0) {
+            # first path elem, we search search_prefix first since
+            # candidate_paths is still empty.
+            @dirs = (''); #$search_prefix);
+        } else {
+            # subsequent path elem, we search all candidate_paths
+            @dirs = @candidate_paths;
+        }
+
+        if ($i == $#intermediate_dirs && $intdir eq '') {
+            @candidate_paths = @dirs;
+            last;
+        }
+
+        my @new_candidate_paths;
+        for my $dir (@dirs) {
+            #say "D:  intdir list($dir)";
+            opendir my($dh), ($dir eq '' ? '.' : $dir) or next;
+            # check if the deeper level is a directory with the expected name
+            my $re = $ci ? qr/\A\Q$intdir\E\z/i : qr/\A\Q$intdir\E\z/;
+            #say "D:  re=$re";
+            for (sort readdir $dh) {
+                #say "D:  $_";
+                next unless $_ =~ $re;
+                # skip . and .. if leaf is empty, like in bash
+                next if ($_ eq '.' || $_ eq '..') && $intdir eq '';
+                my $p = $dir =~ m!\A\z|/\z! ? "$dir$_" : "$dir/$_";
+                next unless -d $p;
+                push @new_candidate_paths, $p;
+            }
+        }
+        #say "D:  candidate_paths=[",join(", ", map{"<$_>"} @new_candidate_paths),"]";
+        return [] unless @new_candidate_paths;
+        @candidate_paths = @new_candidate_paths;
+    }
+
+    my @res;
+    for my $dir (@candidate_paths) {
+        #say "D:opendir($dir)";
+        opendir my($dh), ($dir eq '' ? '.' : $dir) or next;
+        my $re = $ci ? qr/\A\Q$leaf/i : qr/\A\Q$leaf/;
+        #say "D:re=$re";
+        for (sort readdir $dh) {
+            next unless $_ =~ $re;
+            # skip . and .. if leaf is empty, like in bash
+            next if ($_ eq '.' || $_ eq '..') && $leaf eq '';
+            my $p = $dir =~ m!\A\z|/\z! ? "$dir$_" : "$dir/$_";
+            next if $filter_func && !$filter_func->($p);
+
+            # process into final result
+            #substr($p, 0, $res_num_remove) = '' if $res_num_remove;
+            #$p = "$res_prefix$p" if length($res_prefix);
+            $p .= "/" if -d $p;
+
+            push @res, $p;
+        }
+    }
+
+    \@res;
+}
+1;
+# ABSTRACT:
+
+=head1 DESCRIPTION
+
+
+=head1 SEE ALSO
+
+L<Complete>

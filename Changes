@@ -1,0 +1,9 @@
+Revision history for Complete-Path
+
+0.01    2014-12-24 (PERLANCAR) (unreleased)
+
+        - First release. Refactored from Complete::Util's complete_file() to
+          avoid code duplication, as the functionality is also needed in
+          Complete::Module, Complete::Riap, and others in the future whenever we
+          need ci/exp_im_path/map_case/... options when completing anything
+          path-like.
