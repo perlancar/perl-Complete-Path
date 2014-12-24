@@ -37,26 +37,35 @@ _
             schema  => [str=>{default=>''}],
             pos     => 0,
         },
-        path_sep => {
-            schema  => ['any*' => of => ['str*', 'regex*']],
-            default => '/',
-        },
         list_func => {
+            summary => 'Function to list the content of intermediate "dirs"',
             schema => 'code*',
             req => 1,
             description => <<'_',
 
-Code will be called with arguments: XXX.
+Code will be called with arguments: ($path, $cur_path_elem, $is_intermediate).
 
-Code should return an arrayref containing list of elements. "Directories" should
-be suffixed with the path separator character, e.g. `['file1','dir1/',
-'dir2/']`.
+Code should return an arrayref containing list of elements.
 
 _
         },
+        is_dir_func => {
+            summary => 'Function to check whether a path is a "dir"',
+            schema  => 'code*',
+            req     => 1,
+        },
+        starting_path => {
+            schema => 'str*',
+            req => 1,
+            default => '',
+        },
         filter_func => {
             schema  => 'code*',
-            req => 1,
+        },
+
+        path_sep => {
+            schema  => 'str*',
+            default => '/',
         },
         ci => {
             summary => 'Case-insensitive matching',
@@ -100,21 +109,21 @@ sub complete_path {
     my $word   = $args{word} // "";
     my $path_sep = $args{path_sep} // '/';
     my $list_func   = $args{list_func};
+    my $is_dir_func = $args{is_dir_func};
     my $filter_func = $args{filter_func};
     my $ci          = $args{ci} // $Complete::OPT_CI;
     my $map_case    = $args{map_case} // $Complete::OPT_MAP_CASE;
     my $exp_im_path = $args{exp_im_path} // $Complete::OPT_EXP_IM_PATH;
-    #my $result_prefix = $args{result_prefix};
+    my $result_prefix = $args{result_prefix};
+    my $starting_path = $args{starting_path} // '';
 
     # split word by into path elements, as we want to dig level by level (needed
     # when doing case-insensitive search on a case-sensitive tree).
     my @intermediate_dirs;
     {
-        my $path_sep_re =
-            ref($path_sep) eq 'Regexp' ? $path_sep : qr/(?:\Q$path_sep\E)+/;
-        @intermediate_dirs = split $path_sep_re, $word;
+        @intermediate_dirs = split qr/\Q$path_sep/, $word;
         @intermediate_dirs = ('') if !@intermediate_dirs;
-        push @intermediate_dirs, '' if $word =~ m!$path_sep_re\z!;
+        push @intermediate_dirs, '' if $word =~ m!\Q$path_sep\E\z!;
     }
 
     # extract leaf path, because this one is treated differently
@@ -137,9 +146,9 @@ sub complete_path {
         my $intdir = $intermediate_dirs[$i];
         my @dirs;
         if ($i == 0) {
-            # first path elem, we search search_prefix first since
+            # first path elem, we search starting_path first since
             # candidate_paths is still empty.
-            @dirs = (''); #$search_prefix);
+            @dirs = ($starting_path);
         } else {
             # subsequent path elem, we search all candidate_paths
             @dirs = @candidate_paths;
@@ -153,17 +162,23 @@ sub complete_path {
         my @new_candidate_paths;
         for my $dir (@dirs) {
             #say "D:  intdir list($dir)";
-            opendir my($dh), ($dir eq '' ? '.' : $dir) or next;
-            # check if the deeper level is a directory with the expected name
-            my $re = $ci ? qr/\A\Q$intdir\E\z/i : qr/\A\Q$intdir\E\z/;
+            my $listres = $list_func->($dir, $intdir, 1);
+            next unless $listres && @$listres;
+            # check if the deeper level is a candidate
+            my $re = do {
+                my $s = $intdir;
+                $s =~ s/_/-/g if $map_case;
+                $exp_im_path ?
+                    ($ci ? qr/\A\Q$s/i : qr/\A\Q$s/) :
+                        ($ci ? qr/\A\Q$s\E\z/i : qr/\A\Q$s\E\z/);
+            };
             #say "D:  re=$re";
-            for (sort readdir $dh) {
+            for (@$listres) {
                 #say "D:  $_";
-                next unless $_ =~ $re;
-                # skip . and .. if leaf is empty, like in bash
-                next if ($_ eq '.' || $_ eq '..') && $intdir eq '';
-                my $p = $dir =~ m!\A\z|/\z! ? "$dir$_" : "$dir/$_";
-                next unless -d $p;
+                my $s = $_; $s =~ s/_/-/g if $map_case;
+                next unless $s =~ $re;
+                my $p = $dir =~ m!\A\z|\Q$path_sep\E\z! ?
+                    "$dir$_" : "$dir$path_sep$_";
                 push @new_candidate_paths, $p;
             }
         }
@@ -175,20 +190,28 @@ sub complete_path {
     my @res;
     for my $dir (@candidate_paths) {
         #say "D:opendir($dir)";
-        opendir my($dh), ($dir eq '' ? '.' : $dir) or next;
-        my $re = $ci ? qr/\A\Q$leaf/i : qr/\A\Q$leaf/;
+        my $listres = $list_func->($dir, $leaf, 0);
+        next unless $listres && @$listres;
+        my $re = do {
+            my $s = $leaf;
+            $s =~ s/_/-/g if $map_case;
+            $ci ? qr/\A\Q$s/i : qr/\A\Q$s/;
+        };
         #say "D:re=$re";
-        for (sort readdir $dh) {
-            next unless $_ =~ $re;
-            # skip . and .. if leaf is empty, like in bash
-            next if ($_ eq '.' || $_ eq '..') && $leaf eq '';
-            my $p = $dir =~ m!\A\z|/\z! ? "$dir$_" : "$dir/$_";
+        for (@$listres) {
+            my $s = $_; $s =~ s/_/-/g if $map_case;
+            next unless $s =~ $re;
+            my $p = $dir =~ m!\A\z|\Q$path_sep\E\z! ?
+                "$dir$_" : "$dir$path_sep$_";
             next if $filter_func && !$filter_func->($p);
 
             # process into final result
-            #substr($p, 0, $res_num_remove) = '' if $res_num_remove;
-            #$p = "$res_prefix$p" if length($res_prefix);
-            $p .= "/" if -d $p;
+            substr($p, 0, length($starting_path)+length($path_sep))=''
+                if length($starting_path);
+            $p = "$result_prefix$p" if length($result_prefix);
+            unless ($p =~ /\Q$path_sep\E\z/) {
+                $p .= $path_sep if $is_dir_func->($p);
+            }
 
             push @res, $p;
         }
