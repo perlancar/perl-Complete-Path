@@ -178,7 +178,7 @@ sub complete_path {
             for (@$listres) {
                 #say "D:  $_";
                 my $s = $_; $s =~ s/_/-/g if $map_case;
-                say "D: <$s> =~ $re";
+                #say "D: <$s> =~ $re";
                 next unless $s =~ $re;
                 my $p = $dir =~ m!\A\z|\Q$path_sep\E\z! ?
                     "$dir$_" : "$dir$path_sep$_";
