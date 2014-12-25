@@ -1,5 +1,13 @@
 Revision history for Complete-Path
 
+0.05    2014-12-25 (PERLANCAR)
+
+	- No functional changes.
+
+	- [doc] More explanation about 'list_func', 'filter_func',
+	  'is_dir_func'.
+
+
 0.04    2014-12-25 (PERLANCAR)
 
 	- No functional changes.
