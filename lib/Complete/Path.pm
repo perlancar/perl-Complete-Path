@@ -130,8 +130,9 @@ sub complete_path {
     my $leaf = pop @intermediate_dirs;
     @intermediate_dirs = ('') if !@intermediate_dirs;
 
-    #say "D:intermediate_dirs=[",join(", ", map{"<$_>"} @intermediate_dirs),"]";
-    #say "D:leaf=<$leaf>";
+    say "D:starting_path=<$starting_path>";
+    say "D:intermediate_dirs=[",join(", ", map{"<$_>"} @intermediate_dirs),"]";
+    say "D:leaf=<$leaf>";
 
     # candidate for intermediate paths. when doing case-insensitive search,
     # there maybe multiple candidate paths for each dir, for example if
@@ -177,7 +178,7 @@ sub complete_path {
             for (@$listres) {
                 #say "D:  $_";
                 my $s = $_; $s =~ s/_/-/g if $map_case;
-                #say "D: <$s> =~ $re";
+                say "D: <$s> =~ $re";
                 next unless $s =~ $re;
                 my $p = $dir =~ m!\A\z|\Q$path_sep\E\z! ?
                     "$dir$_" : "$dir$path_sep$_";
@@ -187,6 +188,14 @@ sub complete_path {
         #say "D:  candidate_paths=[",join(", ", map{"<$_>"} @new_candidate_paths),"]";
         return [] unless @new_candidate_paths;
         @candidate_paths = @new_candidate_paths;
+    }
+
+    my $cut_chars = 0;
+    if (length($starting_path)) {
+        $cut_chars += length($starting_path);
+        unless ($starting_path =~ /\Q$path_sep\E\z/) {
+            $cut_chars += length($path_sep);
+        }
     }
 
     my @res;
@@ -208,8 +217,7 @@ sub complete_path {
             next if $filter_func && !$filter_func->($p);
 
             # process into final result
-            substr($p, 0, length($starting_path)+length($path_sep))=''
-                if length($starting_path);
+            substr($p, 0, $cut_chars) = '' if $cut_chars;
             $p = "$result_prefix$p" if length($result_prefix);
             unless ($p =~ /\Q$path_sep\E\z/) {
                 $p .= $path_sep if $is_dir_func->($p);
