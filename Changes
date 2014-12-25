@@ -1,5 +1,12 @@
 Revision history for Complete-Path
 
+0.02    2014-12-25 (PERLANCAR)
+
+	- [Bugfix] Tweak regex so that things still work if list_func
+	  returns items suffixed by path separator (like the case in
+	  Complete::Module).
+
+
 0.01    2014-12-24 (PERLANCAR) - ♪ another year has gone by
 
         - First release. Refactored from Complete::Util's complete_file() to
