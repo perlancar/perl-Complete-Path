@@ -225,6 +225,12 @@ sub complete_path {
 =head1 DESCRIPTION
 
 
+=head1 TODO
+
+Recursive matching, e.g. **/Util to match: List/Util, CHI/Util,
+Class/Factory/Util, and so on
+
+
 =head1 SEE ALSO
 
 L<Complete>
