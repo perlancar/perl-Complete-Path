@@ -27,9 +27,9 @@ functions like `Complete::Util::complete_file` or
 `Complete::Module::complete_module`. Provides features like case-insensitive
 matching, expanding intermediate paths, and case mapping.
 
-Algorithm is to split path into path elements, listing (using the supplied
-`list_func`) and perform filtering (using the supplied `filter_func`) at every
-level.
+Algorithm is to split path into path elements, then list items (using the
+supplied `list_func`) and perform filtering (using the supplied `filter_func`)
+at every level.
 
 _
     args => {
@@ -44,15 +44,30 @@ _
             description => <<'_',
 
 Code will be called with arguments: ($path, $cur_path_elem, $is_intermediate).
-
-Code should return an arrayref containing list of elements.
+Code should return an arrayref containing list of elements. "Directories" can be
+marked by ending the name with the path separator (see `path_sep`). Or, you can
+also provide an `is_dir_func` function that will be consulted after filtering.
+If an item is a "directory" then its name will be suffixed with a path
+separator by `complete_path()`.
 
 _
         },
         is_dir_func => {
             summary => 'Function to check whether a path is a "dir"',
             schema  => 'code*',
-            req     => 1,
+            default => sub {0},
+            description => <<'_',
+
+Optional. You can provide this function to determine if an item is a "directory"
+(so its name can be suffixed with path separator). You do not need to do this if
+you already suffix names of "directories" with path separator in `list_func`.
+
+One reason you might want to provide this and not mark "directories" in
+`list_func` is when you want to do extra filtering with `filter_func`. Sometimes
+you do not want to suffix the names first (example: see `complete_file` in
+`Complete::Util`).
+
+_
         },
         starting_path => {
             schema => 'str*',
@@ -61,6 +76,12 @@ _
         },
         filter_func => {
             schema  => 'code*',
+            description => <<'_',
+
+Provide extra filtering. Code will be given path and should return 1 if the item
+should be included in the final result or 0 if the item should be excluded.
+
+_
         },
 
         path_sep => {
@@ -109,7 +130,7 @@ sub complete_path {
     my $word   = $args{word} // "";
     my $path_sep = $args{path_sep} // '/';
     my $list_func   = $args{list_func};
-    my $is_dir_func = $args{is_dir_func};
+    my $is_dir_func = $args{is_dir_func} // sub {0};
     my $filter_func = $args{filter_func};
     my $ci          = $args{ci} // $Complete::OPT_CI;
     my $map_case    = $args{map_case} // $Complete::OPT_MAP_CASE;
