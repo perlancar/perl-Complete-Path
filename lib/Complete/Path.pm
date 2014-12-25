@@ -130,9 +130,9 @@ sub complete_path {
     my $leaf = pop @intermediate_dirs;
     @intermediate_dirs = ('') if !@intermediate_dirs;
 
-    say "D:starting_path=<$starting_path>";
-    say "D:intermediate_dirs=[",join(", ", map{"<$_>"} @intermediate_dirs),"]";
-    say "D:leaf=<$leaf>";
+    #say "D:starting_path=<$starting_path>";
+    #say "D:intermediate_dirs=[",join(", ", map{"<$_>"} @intermediate_dirs),"]";
+    #say "D:leaf=<$leaf>";
 
     # candidate for intermediate paths. when doing case-insensitive search,
     # there maybe multiple candidate paths for each dir, for example if
