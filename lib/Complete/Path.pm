@@ -55,7 +55,6 @@ _
         is_dir_func => {
             summary => 'Function to check whether a path is a "dir"',
             schema  => 'code*',
-            default => sub {0},
             description => <<'_',
 
 Optional. You can provide this function to determine if an item is a "directory"
@@ -130,7 +129,7 @@ sub complete_path {
     my $word   = $args{word} // "";
     my $path_sep = $args{path_sep} // '/';
     my $list_func   = $args{list_func};
-    my $is_dir_func = $args{is_dir_func} // sub {0};
+    my $is_dir_func = $args{is_dir_func};
     my $filter_func = $args{filter_func};
     my $ci          = $args{ci} // $Complete::OPT_CI;
     my $map_case    = $args{map_case} // $Complete::OPT_MAP_CASE;
