@@ -1,6 +1,6 @@
 Revision history for Complete-Path
 
-0.01    2014-12-24 (PERLANCAR) (unreleased)
+0.01    2014-12-24 (PERLANCAR) - ♪ another year has gone by
 
         - First release. Refactored from Complete::Util's complete_file() to
           avoid code duplication, as the functionality is also needed in
