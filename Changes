@@ -1,5 +1,10 @@
 Revision history for Complete-Path
 
+0.06    2014-12-27 (PERLANCAR)
+
+	- Adjust to Complete 0.10, respect OPT_EXP_IM_PATH_MAX_LEN setting.
+
+
 0.05    2014-12-25 (PERLANCAR)
 
 	- No functional changes.
