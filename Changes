@@ -1,5 +1,13 @@
 Revision history for Complete-Path
 
+0.07    2015-01-02 (PERLANCAR)
+
+	- No functional changes.
+
+	- [Bugfix] Perform is_dir_func test on the original path, not the
+	  postprocessed one.
+
+
 0.06    2014-12-27 (PERLANCAR)
 
 	- Adjust to Complete 0.10, respect OPT_EXP_IM_PATH_MAX_LEN setting.
