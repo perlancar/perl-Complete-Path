@@ -239,10 +239,11 @@ sub complete_path {
             next if $filter_func && !$filter_func->($p);
 
             # process into final result
+            my $p0 = $p;
             substr($p, 0, $cut_chars) = '' if $cut_chars;
             $p = "$result_prefix$p" if length($result_prefix);
             unless ($p =~ /\Q$path_sep\E\z/) {
-                $p .= $path_sep if $is_dir_func->($p);
+                $p .= $path_sep if $is_dir_func->($p0);
             }
 
             push @res, $p;
