@@ -1,5 +1,11 @@
 Revision history for Complete-Path
 
+0.08    2015-01-07 (PERLANCAR)
+
+	- Add convenience of locally setting $_ for filter_func/is_dir_func
+	  routine.
+
+
 0.07    2015-01-02 (PERLANCAR)
 
 	- No functional changes.
