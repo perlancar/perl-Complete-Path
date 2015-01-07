@@ -236,14 +236,21 @@ sub complete_path {
             next unless $s =~ $re;
             my $p = $dir =~ m!\A\z|\Q$path_sep\E\z! ?
                 "$dir$_" : "$dir$path_sep$_";
-            next if $filter_func && !$filter_func->($p);
+            #say "D:dir=<$dir>, \$_=<$_>, p=<$p>";
+            {
+                local $_ = $p; # convenience for filter func
+                next if $filter_func && !$filter_func->($p);
+            }
 
             # process into final result
             my $p0 = $p;
             substr($p, 0, $cut_chars) = '' if $cut_chars;
             $p = "$result_prefix$p" if length($result_prefix);
             unless ($p =~ /\Q$path_sep\E\z/) {
-                $p .= $path_sep if $is_dir_func->($p0);
+                {
+                    local $_ = $p0; # convenience for filter func
+                    $p .= $path_sep if $is_dir_func->($p0);
+                }
             }
 
             push @res, $p;
