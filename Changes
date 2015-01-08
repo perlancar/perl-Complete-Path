@@ -1,5 +1,13 @@
 Revision history for Complete-Path
 
+0.09    2015-01-08 (PERLANCAR)
+
+	- No functional changes.
+
+	- [Bugfix] needed to use label to exit loop due to added block
+	  level (broke Complete::File test) [CT].
+
+
 0.08    2015-01-07 (PERLANCAR)
 
 	- Add convenience of locally setting $_ for filter_func/is_dir_func
