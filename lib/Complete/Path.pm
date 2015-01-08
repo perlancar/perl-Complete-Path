@@ -231,6 +231,7 @@ sub complete_path {
             $ci ? qr/\A\Q$s/i : qr/\A\Q$s/;
         };
         #say "D:re=$re";
+      L1:
         for (@$listres) {
             my $s = $_; $s =~ s/_/-/g if $map_case;
             next unless $s =~ $re;
@@ -239,7 +240,7 @@ sub complete_path {
             #say "D:dir=<$dir>, \$_=<$_>, p=<$p>";
             {
                 local $_ = $p; # convenience for filter func
-                next if $filter_func && !$filter_func->($p);
+                next L1 if $filter_func && !$filter_func->($p);
             }
 
             # process into final result
