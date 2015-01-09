@@ -1,5 +1,10 @@
 Revision history for Complete-Path
 
+0.12    2015-01-09 (PERLANCAR)
+
+	- Implement dig_leaf option (Complete 0.11).
+
+
 0.09    2015-01-08 (PERLANCAR)
 
 	- No functional changes.
