@@ -15,6 +15,23 @@ our @EXPORT_OK = qw(
                        complete_path
                );
 
+sub _dig_leaf {
+    my ($p, $list_func, $is_dir_func, $path_sep) = @_;
+    my $num_dirs;
+    my $listres = $list_func->($p, '', 0);
+    return $p unless @$listres == 1;
+    my $e = $listres->[0];
+    my $p2 = $p =~ m!\Q$path_sep\E\z! ? "$p$e" : "$p$path_sep$e";
+    my $is_dir;
+    if ($e =~ m!\Q$path_sep\E\z!) {
+        $is_dir++;
+    } else {
+        $is_dir = $is_dir_func && $is_dir_func->($p2);
+    }
+    return _dig_leaf($p2, $list_func, $is_dir_func, $path_sep) if $is_dir;
+    $p2;
+}
+
 our %SPEC;
 
 $SPEC{complete_path} = {
@@ -114,6 +131,17 @@ This option mimics feature in zsh where when you type something like `cd
 
 _
         },
+        dig_leaf => {
+            summary => 'Dig leafs',
+            schema => 'bool',
+            description => <<'_',
+
+This feature mimics what's seen on GitHub. If a directory entry only contains a
+single entry, it will directly show the subentry (and subsubentry and so on) to
+save a number of tab presses.
+
+_
+        },
         #result_prefix => {
         #    summary => 'Prefix each result with this string',
         #    schema  => 'str*',
@@ -134,10 +162,13 @@ sub complete_path {
     my $ci          = $args{ci} // $Complete::OPT_CI;
     my $map_case    = $args{map_case} // $Complete::OPT_MAP_CASE;
     my $exp_im_path = $args{exp_im_path} // $Complete::OPT_EXP_IM_PATH;
+    my $dig_leaf    = $args{dig_leaf} // $Complete::OPT_DIG_LEAF;
     my $result_prefix = $args{result_prefix};
     my $starting_path = $args{starting_path} // '';
 
     my $exp_im_path_max_len = $Complete::OPT_EXP_IM_PATH_MAX_LEN;
+
+    my $re_ends_with_path_sep = qr!\A\z|\Q$path_sep\E\z!;
 
     # split word by into path elements, as we want to dig level by level (needed
     # when doing case-insensitive search on a case-sensitive tree).
@@ -145,7 +176,7 @@ sub complete_path {
     {
         @intermediate_dirs = split qr/\Q$path_sep/, $word;
         @intermediate_dirs = ('') if !@intermediate_dirs;
-        push @intermediate_dirs, '' if $word =~ m!\Q$path_sep\E\z!;
+        push @intermediate_dirs, '' if $word =~ $re_ends_with_path_sep;
     }
 
     # extract leaf path, because this one is treated differently
@@ -202,7 +233,7 @@ sub complete_path {
                 my $s = $_; $s =~ s/_/-/g if $map_case;
                 #say "D: <$s> =~ $re";
                 next unless $s =~ $re;
-                my $p = $dir =~ m!\A\z|\Q$path_sep\E\z! ?
+                my $p = $dir =~ $re_ends_with_path_sep ?
                     "$dir$_" : "$dir$path_sep$_";
                 push @new_candidate_paths, $p;
             }
@@ -232,15 +263,33 @@ sub complete_path {
         };
         #say "D:re=$re";
       L1:
-        for (@$listres) {
-            my $s = $_; $s =~ s/_/-/g if $map_case;
+        for my $e (@$listres) {
+            my $s = $e; $s =~ s/_/-/g if $map_case;
             next unless $s =~ $re;
-            my $p = $dir =~ m!\A\z|\Q$path_sep\E\z! ?
-                "$dir$_" : "$dir$path_sep$_";
-            #say "D:dir=<$dir>, \$_=<$_>, p=<$p>";
+            my $p = $dir =~ $re_ends_with_path_sep ?
+                "$dir$e" : "$dir$path_sep$e";
             {
                 local $_ = $p; # convenience for filter func
                 next L1 if $filter_func && !$filter_func->($p);
+            }
+
+            my $is_dir;
+            if ($e =~ $re_ends_with_path_sep) {
+                $is_dir = 1;
+            } else {
+                local $_ = $p; # convenience for is_dir_func
+                $is_dir = $is_dir_func->($p);
+            }
+
+            if ($is_dir && $dig_leaf) {
+                $p = _dig_leaf($p, $list_func, $is_dir_func, $path_sep);
+                # check again
+                if ($p =~ $re_ends_with_path_sep) {
+                    $is_dir = 1;
+                } else {
+                    local $_ = $p; # convenience for is_dir_func
+                    $is_dir = $is_dir_func->($p);
+                }
             }
 
             # process into final result
@@ -248,12 +297,8 @@ sub complete_path {
             substr($p, 0, $cut_chars) = '' if $cut_chars;
             $p = "$result_prefix$p" if length($result_prefix);
             unless ($p =~ /\Q$path_sep\E\z/) {
-                {
-                    local $_ = $p0; # convenience for filter func
-                    $p .= $path_sep if $is_dir_func->($p0);
-                }
+                $p .= $path_sep if $is_dir;
             }
-
             push @res, $p;
         }
     }
