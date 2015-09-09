@@ -159,14 +159,14 @@ sub complete_path {
     my $list_func   = $args{list_func};
     my $is_dir_func = $args{is_dir_func};
     my $filter_func = $args{filter_func};
-    my $ci          = $args{ci} // $Complete::OPT_CI;
-    my $map_case    = $args{map_case} // $Complete::OPT_MAP_CASE;
-    my $exp_im_path = $args{exp_im_path} // $Complete::OPT_EXP_IM_PATH;
-    my $dig_leaf    = $args{dig_leaf} // $Complete::OPT_DIG_LEAF;
+    my $ci          = $args{ci} // $Complete::Setting::OPT_CI;
+    my $map_case    = $args{map_case} // $Complete::Setting::OPT_MAP_CASE;
+    my $exp_im_path = $args{exp_im_path} // $Complete::Setting::OPT_EXP_IM_PATH;
+    my $dig_leaf    = $args{dig_leaf} // $Complete::Setting::OPT_DIG_LEAF;
     my $result_prefix = $args{result_prefix};
     my $starting_path = $args{starting_path} // '';
 
-    my $exp_im_path_max_len = $Complete::OPT_EXP_IM_PATH_MAX_LEN;
+    my $exp_im_path_max_len = $Complete::Setting::OPT_EXP_IM_PATH_MAX_LEN;
 
     my $re_ends_with_path_sep = qr!\A\z|\Q$path_sep\E\z!;
 
