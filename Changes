@@ -1,5 +1,13 @@
 Revision history for Complete-Path
 
+0.15    2015-09-09 (PERLANCAR)
+
+	- Tweak exp_im_path behavior: if a single exact match of an
+	  intermediate dir is found, don't expand all alternatives but
+	  instead of just that exact match. This is the desired behavior
+	  most of the time.
+
+
 0.14    2015-09-09 (PERLANCAR)
 
 	- No functional changes.
