@@ -228,6 +228,8 @@ sub complete_path {
                              qr/\A\Q$s\E(?:\Q$path_sep\E)?\z/);
             };
             #say "D:  re=$re";
+            my $num_exact_matches = 0;
+            my $exact_match_path;
             for (@$listres) {
                 #say "D:  $_";
                 my $s = $_; $s =~ s/_/-/g if $map_case;
@@ -235,7 +237,21 @@ sub complete_path {
                 next unless $s =~ $re;
                 my $p = $dir =~ $re_ends_with_path_sep ?
                     "$dir$_" : "$dir$path_sep$_";
+                if ($ci ? lc($s) eq lc($intdir) : $s eq $intdir) {
+                    $num_exact_matches++;
+                    $exact_match_path = $p;
+                }
                 push @new_candidate_paths, $p;
+            }
+
+            # when doing exp_im_path, check if we have a single exact match. in
+            # that case, don't use all the candidates because that can be
+            # annoying, e.g. you have 'a/foo' and 'and/food', you won't be able
+            # to complete 'a/f' because bash (e.g.) will always cut the answer
+            # to 'a' because the candidates are 'a/foo' and 'and/foo' (it will
+            # use the shortest common string which is 'a').
+            if ($num_exact_matches == 1) {
+                @new_candidate_paths = ($exact_match_path);
             }
         }
         #say "D:  candidate_paths=[",join(", ", map{"<$_>"} @new_candidate_paths),"]";
