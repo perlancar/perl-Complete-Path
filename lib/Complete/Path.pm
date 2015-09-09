@@ -7,7 +7,7 @@ use 5.010001;
 use strict;
 use warnings;
 
-use Complete;
+use Complete::Setting;
 
 require Exporter;
 our @ISA = qw(Exporter);
