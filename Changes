@@ -1,5 +1,10 @@
 Revision history for Complete-Path
 
+0.17    2015-09-16 (PERLANCAR)
+
+	- No longer uses $Complete::Setting::OPT_EXP_IM_PATH_MAX_LEN.
+
+
 0.16    2015-09-16 (PERLANCAR)
 
 	- [Bugfix] Fix exact match matching for intermediate path (missed
