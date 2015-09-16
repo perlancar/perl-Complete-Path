@@ -1,5 +1,11 @@
 Revision history for Complete-Path
 
+0.16    2015-09-16 (PERLANCAR)
+
+	- [Bugfix] Fix exact match matching for intermediate path (missed
+	  the path separator).
+
+
 0.15    2015-09-09 (PERLANCAR)
 
 	- Tweak exp_im_path behavior: if a single exact match of an
