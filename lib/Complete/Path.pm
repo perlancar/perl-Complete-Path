@@ -166,8 +166,6 @@ sub complete_path {
     my $result_prefix = $args{result_prefix};
     my $starting_path = $args{starting_path} // '';
 
-    my $exp_im_path_max_len = $Complete::Setting::OPT_EXP_IM_PATH_MAX_LEN;
-
     my $re_ends_with_path_sep = qr!\A\z|\Q$path_sep\E\z!;
 
     # split word by into path elements, as we want to dig level by level (needed
@@ -223,10 +221,10 @@ sub complete_path {
             my $re = do {
                 my $s = $intdir;
                 $s =~ s/_/-/g if $map_case;
-                $exp_im_path && length($s) <= $exp_im_path_max_len ?
+                $exp_im_path ?
                     ($ci ? qr/\A\Q$s/i : qr/\A\Q$s/) :
-                        ($ci ? qr/\A\Q$s\E(?:\Q$path_sep\E)?\z/i :
-                             qr/\A\Q$s\E(?:\Q$path_sep\E)?\z/);
+                    ($ci ? qr/\A\Q$s\E(?:\Q$path_sep\E)?\z/i :
+                     qr/\A\Q$s\E(?:\Q$path_sep\E)?\z/);
             };
             #say "D:  re=$re";
             my $num_exact_matches = 0;
