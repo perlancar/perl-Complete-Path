@@ -198,6 +198,7 @@ sub complete_path {
 
     for my $i (0..$#intermediate_dirs) {
         my $intdir = $intermediate_dirs[$i];
+        my $intdir_with_path_sep = "$intdir$path_sep";
         my @dirs;
         if ($i == 0) {
             # first path elem, we search starting_path first since
@@ -237,7 +238,9 @@ sub complete_path {
                 next unless $s =~ $re;
                 my $p = $dir =~ $re_ends_with_path_sep ?
                     "$dir$_" : "$dir$path_sep$_";
-                if ($ci ? lc($s) eq lc($intdir) : $s eq $intdir) {
+                #say "D:  s=$s intdir=$intdir";
+                if ($ci ? lc($s) eq lc($intdir_with_path_sep) :
+                        $s eq $intdir_with_path_sep) {
                     $num_exact_matches++;
                     $exact_match_path = $p;
                 }
@@ -250,7 +253,8 @@ sub complete_path {
             # to complete 'a/f' because bash (e.g.) will always cut the answer
             # to 'a' because the candidates are 'a/foo' and 'and/foo' (it will
             # use the shortest common string which is 'a').
-            if ($num_exact_matches == 1) {
+            #say "D:  num_exact_matches: $num_exact_matches";
+            if ($exp_im_path && $num_exact_matches == 1) {
                 @new_candidate_paths = ($exact_match_path);
             }
         }
