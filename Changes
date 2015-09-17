@@ -1,5 +1,11 @@
 Revision history for Complete-Path
 
+0.18    2015-09-17 (PERLANCAR)
+
+	- Add fuzzy matching, use Complete::Util::complete_array_elem's
+	  map_case (+ci, +fuzzy) instead of doing our own.
+
+
 0.17    2015-09-16 (PERLANCAR)
 
 	- No longer uses $Complete::Setting::OPT_EXP_IM_PATH_MAX_LEN.
