@@ -108,6 +108,10 @@ _
             summary => 'Case-insensitive matching',
             schema  => 'bool',
         },
+        fuzzy => {
+            summary => 'Fuzzy matching',
+            schema  => ['int*', min=>0],
+        },
         map_case => {
             summary => 'Treat _ (underscore) and - (dash) as the same',
             schema  => 'bool',
@@ -153,6 +157,8 @@ _
     },
 };
 sub complete_path {
+    require Complete::Util;
+
     my %args   = @_;
     my $word   = $args{word} // "";
     my $path_sep = $args{path_sep} // '/';
@@ -160,6 +166,7 @@ sub complete_path {
     my $is_dir_func = $args{is_dir_func};
     my $filter_func = $args{filter_func};
     my $ci          = $args{ci} // $Complete::Setting::OPT_CI;
+    my $fuzzy       = $args{fuzzy} // $Complete::Setting::OPT_FUZZY;
     my $map_case    = $args{map_case} // $Complete::Setting::OPT_MAP_CASE;
     my $exp_im_path = $args{exp_im_path} // $Complete::Setting::OPT_EXP_IM_PATH;
     my $dig_leaf    = $args{dig_leaf} // $Complete::Setting::OPT_DIG_LEAF;
@@ -217,33 +224,15 @@ sub complete_path {
             #say "D:  intdir list($dir)";
             my $listres = $list_func->($dir, $intdir, 1);
             next unless $listres && @$listres;
-            # check if the deeper level is a candidate
-            my $re = do {
-                my $s = $intdir;
-                $s =~ s/_/-/g if $map_case;
-                $exp_im_path ?
-                    ($ci ? qr/\A\Q$s/i : qr/\A\Q$s/) :
-                    ($ci ? qr/\A\Q$s\E(?:\Q$path_sep\E)?\z/i :
-                     qr/\A\Q$s\E(?:\Q$path_sep\E)?\z/);
-            };
-            #say "D:  re=$re";
-            my $num_exact_matches = 0;
-            my $exact_match_path;
-            for (@$listres) {
-                #say "D:  $_";
-                my $s = $_; $s =~ s/_/-/g if $map_case;
-                #say "D: <$s> =~ $re";
-                next unless $s =~ $re;
-                my $p = $dir =~ $re_ends_with_path_sep ?
-                    "$dir$_" : "$dir$path_sep$_";
-                #say "D:  s=$s intdir=$intdir";
-                if ($ci ? lc($s) eq lc($intdir_with_path_sep) :
-                        $s eq $intdir_with_path_sep) {
-                    $num_exact_matches++;
-                    $exact_match_path = $p;
-                }
-                push @new_candidate_paths, $p;
-            }
+            #use DD; dd $listres;
+            my $matches = Complete::Util::complete_array_elem(
+                word => $intdir, array => $listres,
+                ci=>$ci, fuzzy=>$fuzzy, map_case=>$map_case,
+            );
+            my $exact_matches = [grep {
+                length($intdir)+length($path_sep) eq length($_)
+            } @$matches];
+            #print "D: word=<$intdir>, matches="; use DD; dd $matches; print ", exact_matches="; dd $exact_matches;
 
             # when doing exp_im_path, check if we have a single exact match. in
             # that case, don't use all the candidates because that can be
@@ -252,9 +241,16 @@ sub complete_path {
             # to 'a' because the candidates are 'a/foo' and 'and/foo' (it will
             # use the shortest common string which is 'a').
             #say "D:  num_exact_matches: $num_exact_matches";
-            if ($exp_im_path && $num_exact_matches == 1) {
-                @new_candidate_paths = ($exact_match_path);
+            if ($exp_im_path && @$exact_matches == 1) {
+                $matches = $exact_matches;
             }
+
+            for (@$matches) {
+                my $p = $dir =~ $re_ends_with_path_sep ?
+                    "$dir$_" : "$dir$path_sep$_";
+                push @new_candidate_paths, $p;
+            }
+
         }
         #say "D:  candidate_paths=[",join(", ", map{"<$_>"} @new_candidate_paths),"]";
         return [] unless @new_candidate_paths;
@@ -274,16 +270,14 @@ sub complete_path {
         #say "D:opendir($dir)";
         my $listres = $list_func->($dir, $leaf, 0);
         next unless $listres && @$listres;
-        my $re = do {
-            my $s = $leaf;
-            $s =~ s/_/-/g if $map_case;
-            $ci ? qr/\A\Q$s/i : qr/\A\Q$s/;
-        };
-        #say "D:re=$re";
+        my $matches = Complete::Util::complete_array_elem(
+            word => $leaf, array => $listres,
+            ci=>$ci, fuzzy=>$fuzzy, map_case=>$map_case,
+        );
+        #use DD; dd $matches;
+
       L1:
-        for my $e (@$listres) {
-            my $s = $e; $s =~ s/_/-/g if $map_case;
-            next unless $s =~ $re;
+        for my $e (@$matches) {
             my $p = $dir =~ $re_ends_with_path_sep ?
                 "$dir$e" : "$dir$path_sep$e";
             {
