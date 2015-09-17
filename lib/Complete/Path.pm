@@ -40,7 +40,7 @@ $SPEC{complete_path} = {
     description => <<'_',
 
 Complete path, for anything path-like. Meant to be used as backend for other
-functions like `Complete::Util::complete_file` or
+functions like `Complete::File::complete_file` or
 `Complete::Module::complete_module`. Provides features like case-insensitive
 matching, expanding intermediate paths, and case mapping.
 
@@ -81,7 +81,7 @@ you already suffix names of "directories" with path separator in `list_func`.
 One reason you might want to provide this and not mark "directories" in
 `list_func` is when you want to do extra filtering with `filter_func`. Sometimes
 you do not want to suffix the names first (example: see `complete_file` in
-`Complete::Util`).
+`Complete::File`).
 
 _
         },
