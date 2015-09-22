@@ -19,7 +19,7 @@ sub _dig_leaf {
     my ($p, $list_func, $is_dir_func, $path_sep) = @_;
     my $num_dirs;
     my $listres = $list_func->($p, '', 0);
-    return $p unless @$listres == 1;
+    return $p unless ref($listres) eq 'ARRAY' && @$listres == 1;
     my $e = $listres->[0];
     my $p2 = $p =~ m!\Q$path_sep\E\z! ? "$p$e" : "$p$path_sep$e";
     my $is_dir;
