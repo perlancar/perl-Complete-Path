@@ -1,5 +1,12 @@
 Revision history for Complete-Path
 
+0.19    2015-09-22 (PERLANCAR)
+
+	- [Bugfix] Avoid error when list_func doesn't return array.
+
+	- Update documentation.
+
+
 0.18    2015-09-17 (PERLANCAR)
 
 	- Add fuzzy matching, use Complete::Util::complete_array_elem's
