@@ -7,7 +7,7 @@ use 5.010001;
 use strict;
 use warnings;
 
-use Complete::Setting;
+use Complete::Common qw(:all);
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -50,10 +50,7 @@ at every level.
 
 _
     args => {
-        word => {
-            schema  => [str=>{default=>''}],
-            pos     => 0,
-        },
+        %arg_word,
         list_func => {
             summary => 'Function to list the content of intermediate "dirs"',
             schema => 'code*',
@@ -99,52 +96,9 @@ should be included in the final result or 0 if the item should be excluded.
 
 _
         },
-
         path_sep => {
             schema  => 'str*',
             default => '/',
-        },
-        ci => {
-            summary => 'Case-insensitive matching',
-            schema  => 'bool',
-        },
-        fuzzy => {
-            summary => 'Fuzzy matching',
-            schema  => ['int*', min=>0],
-        },
-        map_case => {
-            summary => 'Treat _ (underscore) and - (dash) as the same',
-            schema  => 'bool',
-            description => <<'_',
-
-This is another convenience option like `ci`, where you can type `-` (without
-pressing Shift, at least in US keyboard) and can still complete `_` (underscore,
-which is typed by pressing Shift, at least in US keyboard).
-
-This option mimics similar option in bash/readline: `completion-map-case`.
-
-_
-        },
-        exp_im_path => {
-            summary => 'Expand intermediate paths',
-            schema  => 'bool',
-            description => <<'_',
-
-This option mimics feature in zsh where when you type something like `cd
-/h/u/b/myscript` and get `cd /home/ujang/bin/myscript` as a completion answer.
-
-_
-        },
-        dig_leaf => {
-            summary => 'Dig leafs',
-            schema => 'bool',
-            description => <<'_',
-
-This feature mimics what's seen on GitHub. If a directory entry only contains a
-single entry, it will directly show the subentry (and subsubentry and so on) to
-save a number of tab presses.
-
-_
         },
         #result_prefix => {
         #    summary => 'Prefix each result with this string',
@@ -165,13 +119,15 @@ sub complete_path {
     my $list_func   = $args{list_func};
     my $is_dir_func = $args{is_dir_func};
     my $filter_func = $args{filter_func};
-    my $ci          = $args{ci} // $Complete::Setting::OPT_CI;
-    my $fuzzy       = $args{fuzzy} // $Complete::Setting::OPT_FUZZY;
-    my $map_case    = $args{map_case} // $Complete::Setting::OPT_MAP_CASE;
-    my $exp_im_path = $args{exp_im_path} // $Complete::Setting::OPT_EXP_IM_PATH;
-    my $dig_leaf    = $args{dig_leaf} // $Complete::Setting::OPT_DIG_LEAF;
     my $result_prefix = $args{result_prefix};
     my $starting_path = $args{starting_path} // '';
+
+    my $ci          = $Complete::Common::OPT_CI;
+    my $word_mode   = $Complete::Common::OPT_WORD_MODE;
+    my $fuzzy       = $Complete::Common::OPT_FUZZY;
+    my $map_case    = $Complete::Common::OPT_MAP_CASE;
+    my $exp_im_path = $Complete::Common::OPT_EXP_IM_PATH;
+    my $dig_leaf    = $Complete::Common::OPT_DIG_LEAF;
 
     my $re_ends_with_path_sep = qr!\A\z|\Q$path_sep\E\z!;
 
@@ -227,7 +183,6 @@ sub complete_path {
             #use DD; dd $listres;
             my $matches = Complete::Util::complete_array_elem(
                 word => $intdir, array => $listres,
-                ci=>$ci, fuzzy=>$fuzzy, map_case=>$map_case,
             );
             my $exact_matches = [grep {
                 length($intdir)+length($path_sep) eq length($_)
@@ -272,7 +227,6 @@ sub complete_path {
         next unless $listres && @$listres;
         my $matches = Complete::Util::complete_array_elem(
             word => $leaf, array => $listres,
-            ci=>$ci, fuzzy=>$fuzzy, map_case=>$map_case,
         );
         #use DD; dd $matches;
 
