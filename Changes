@@ -1,5 +1,13 @@
 Revision history for Complete-Path
 
+0.20    2015-11-29 (PERLANCAR)
+
+	- Adjust to Complete::Common 0.21; [Removed] For more consistent
+	  user experience, remove options
+	  ci/word_mode/fuzzy/map_case/exp_im_path/dig_leaf, users are now
+	  encouraged to set this behavior globally via Complete::Common.
+
+
 0.19    2015-09-22 (PERLANCAR)
 
 	- [Bugfix] Avoid error when list_func doesn't return array.
