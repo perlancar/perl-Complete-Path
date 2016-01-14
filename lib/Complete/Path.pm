@@ -16,19 +16,30 @@ our @EXPORT_OK = qw(
                );
 
 sub _dig_leaf {
-    my ($p, $list_func, $is_dir_func, $path_sep) = @_;
+    my ($p, $list_func, $is_dir_func, $filter_func, $path_sep) = @_;
     my $num_dirs;
     my $listres = $list_func->($p, '', 0);
-    return $p unless ref($listres) eq 'ARRAY' && @$listres == 1;
-    my $e = $listres->[0];
-    my $p2 = $p =~ m!\Q$path_sep\E\z! ? "$p$e" : "$p$path_sep$e";
+    return $p unless ref($listres) eq 'ARRAY' && @$listres;
+    my @candidates;
+  L1:
+    for my $e (@$listres) {
+        my $p2 = $p =~ m!\Q$path_sep\E\z! ? "$p$e" : "$p$path_sep$e";
+        {
+            local $_ = $p2; # convenience for filter func
+            next L1 if $filter_func && !$filter_func->($p2);
+        }
+        push @candidates, $p2;
+    }
+    return $p unless @candidates == 1;
+    my $p2 = $candidates[0];
     my $is_dir;
-    if ($e =~ m!\Q$path_sep\E\z!) {
+    if ($p2 =~ m!\Q$path_sep\E\z!) {
         $is_dir++;
     } else {
         $is_dir = $is_dir_func && $is_dir_func->($p2);
     }
-    return _dig_leaf($p2, $list_func, $is_dir_func, $path_sep) if $is_dir;
+    return _dig_leaf($p2, $list_func, $is_dir_func, $filter_func, $path_sep)
+        if $is_dir;
     $p2;
 }
 
@@ -234,6 +245,7 @@ sub complete_path {
         for my $e (@$matches) {
             my $p = $dir =~ $re_ends_with_path_sep ?
                 "$dir$e" : "$dir$path_sep$e";
+            #say "D:p=$p";
             {
                 local $_ = $p; # convenience for filter func
                 next L1 if $filter_func && !$filter_func->($p);
@@ -248,13 +260,19 @@ sub complete_path {
             }
 
             if ($is_dir && $dig_leaf) {
-                $p = _dig_leaf($p, $list_func, $is_dir_func, $path_sep);
-                # check again
-                if ($p =~ $re_ends_with_path_sep) {
-                    $is_dir = 1;
-                } else {
-                    local $_ = $p; # convenience for is_dir_func
-                    $is_dir = $is_dir_func->($p);
+                {
+                    my $p2 = _dig_leaf($p, $list_func, $is_dir_func, $filter_func, $path_sep);
+                    last if $p2 eq $p;
+                    $p = $p2;
+                    #say "D:p=$p (dig_leaf)";
+
+                    # check again
+                    if ($p =~ $re_ends_with_path_sep) {
+                        $is_dir = 1;
+                    } else {
+                        local $_ = $p; # convenience for is_dir_func
+                        $is_dir = $is_dir_func->($p);
+                    }
                 }
             }
 
