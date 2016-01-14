@@ -1,5 +1,10 @@
 Revision history for Complete-Path
 
+0.21    2016-01-14 (PERLANCAR)
+
+	- [Bugfix] dig_leaf option should still respect filter.
+
+
 0.20    2015-11-29 (PERLANCAR)
 
 	- Adjust to Complete::Common 0.21
