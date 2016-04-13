@@ -1,5 +1,11 @@
 Revision history for Complete-Path
 
+0.22    2016-04-13 (PERLANCAR)
+
+	- [Bugfix] Fix calculating exact matches (which caused e.g.
+	  f/bar<tab> to fail matching f directly when there is f and foo).
+
+
 0.21    2016-01-14 (PERLANCAR)
 
 	- [Bugfix] dig_leaf option should still respect filter.
