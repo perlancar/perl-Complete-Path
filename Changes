@@ -5,6 +5,8 @@ Revision history for Complete-Path
 	- [Bugfix] Fix calculating exact matches (which caused e.g.
 	  f/bar<tab> to fail matching f directly when there is f and foo).
 
+        - Observe COMPLETE_PATH_TRACE to enable extra logging for debugging.
+
 
 0.21    2016-01-14 (PERLANCAR)
 
