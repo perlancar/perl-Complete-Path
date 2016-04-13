@@ -6,8 +6,11 @@ package Complete::Path;
 use 5.010001;
 use strict;
 use warnings;
+use Log::Any::IfLOG '$log';
 
 use Complete::Common qw(:all);
+
+our $COMPLETE_PATH_TRACE = $ENV{COMPLETE_PATH_TRACE} // 0;
 
 require Exporter;
 our @ISA = qw(Exporter);
@@ -196,9 +199,9 @@ sub complete_path {
                 word => $intdir, array => $listres,
             );
             my $exact_matches = [grep {
-                length($intdir)+length($path_sep) eq length($_)
+                length($intdir) eq length($_)
             } @$matches];
-            #print "D: word=<$intdir>, matches="; use DD; dd $matches; print ", exact_matches="; dd $exact_matches;
+            #use Data::Dmp; say "D: word=<$intdir>, matches=", dmp($matches), ", exact_matches=", dmp($exact_matches);
 
             # when doing exp_im_path, check if we have a single exact match. in
             # that case, don't use all the candidates because that can be
@@ -206,7 +209,7 @@ sub complete_path {
             # to complete 'a/f' because bash (e.g.) will always cut the answer
             # to 'a' because the candidates are 'a/foo' and 'and/foo' (it will
             # use the shortest common string which is 'a').
-            #say "D:  num_exact_matches: $num_exact_matches";
+            #say "D:  num_exact_matches: ", scalar @$exact_matches;
             if ($exp_im_path && @$exact_matches == 1) {
                 $matches = $exact_matches;
             }
@@ -293,6 +296,13 @@ sub complete_path {
 # ABSTRACT:
 
 =head1 DESCRIPTION
+
+
+=head1 ENVIRONMENT
+
+=head2 COMPLETE_PATH_TRACE => bool
+
+If set to true, will produce more log statements for debugging.
 
 
 =head1 SEE ALSO
