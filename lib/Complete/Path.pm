@@ -210,7 +210,7 @@ sub complete_path {
             # to 'a' because the candidates are 'a/foo' and 'and/foo' (it will
             # use the shortest common string which is 'a').
             #say "D:  num_exact_matches: ", scalar @$exact_matches;
-            if ($exp_im_path && @$exact_matches == 1) {
+            if (!$exp_im_path || @$exact_matches == 1) {
                 $matches = $exact_matches;
             }
 
