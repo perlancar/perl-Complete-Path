@@ -1,5 +1,15 @@
 Revision history for Complete-Path
 
+0.23    2016-06-17 (PERLANCAR)
+
+	- [Bugfix] Finding exact match of an intermediate path was still
+	  wrong: first the result from list_func has path separator suffix
+	  and we compare it with the string without, second due to fuzzy
+	  matching we cannot rely on length() alone but must use eq.
+
+	- [Bugfix] EXP_IM_PATH=0 option was not respected.
+
+
 0.22    2016-04-13 (PERLANCAR)
 
 	- [Bugfix] Fix calculating exact matches (which caused e.g.
