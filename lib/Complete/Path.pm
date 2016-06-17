@@ -194,12 +194,12 @@ sub complete_path {
             #say "D:  intdir list($dir)";
             my $listres = $list_func->($dir, $intdir, 1);
             next unless $listres && @$listres;
-            #use DD; dd $listres;
+            #use DD; say "D: list res=", DD::dump($listres);
             my $matches = Complete::Util::complete_array_elem(
                 word => $intdir, array => $listres,
             );
             my $exact_matches = [grep {
-                length($intdir) eq length($_)
+                $_ eq $intdir || $_ eq $intdir_with_path_sep
             } @$matches];
             #use Data::Dmp; say "D: word=<$intdir>, matches=", dmp($matches), ", exact_matches=", dmp($exact_matches);
 
