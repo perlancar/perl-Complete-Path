@@ -119,12 +119,25 @@ _
         #    schema  => 'str*',
         #},
         recurse => {
-            schema => 'bool*',
+            schema => ['int*', in=>1, 2],
             description => <<'_',
+
+If set to 1 or 2, will recurse paths. If set to 2, will perform matching of word
+against the whole tree instead of level-by-level.
 
 Note that in recurse mode, leaf digging is not done.
 
 _
+        },
+        exclude_leaf => {
+            schema => 'bool*',
+        },
+        exclude_nonleaf => {
+            schema => 'bool*',
+        },
+        exclude_dir => {
+            summary => 'Alias for exclude_nonleaf option',
+            schema => 'bool*',
         },
     },
     result_naked => 1,
@@ -144,6 +157,8 @@ sub complete_path {
     my $result_prefix = $args{result_prefix};
     my $starting_path = $args{starting_path} // '';
     my $recurse = $args{recurse};
+    my $exclude_leaf = $args{exclude_leaf};
+    my $exclude_nonleaf = $args{exclude_nonleaf} // $args{exclude_dir};
 
     my $ci          = $Complete::Common::OPT_CI;
     my $word_mode   = $Complete::Common::OPT_WORD_MODE;
@@ -311,7 +326,8 @@ sub complete_path {
             unless ($p =~ /\Q$path_sep\E\z/) {
                 $p .= $path_sep if $is_dir;
             }
-            push @res, $p, @subres;
+            push @res, $p unless ($is_dir && $exclude_nonleaf) || (!$is_dir && $exclude_leaf);
+            push @res, @subres;
         }
     }
 
