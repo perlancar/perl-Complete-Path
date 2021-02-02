@@ -1,3 +1,8 @@
+0.251   2021-02-02  Released-By: PERLANCAR; Urgency: medium
+
+	- Add options: recurse_matching, exclude_leaf, exclude_dir.
+
+
 0.250   2021-02-02  Released-By: PERLANCAR; Urgency: medium
 
 	- [experimental] Add experimental option: recurse.

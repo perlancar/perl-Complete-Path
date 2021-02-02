@@ -184,7 +184,6 @@ sub complete_path {
     }
 
   RECURSE_MATCHING_ALL_AT_ONCE: {
-        use DD; dd \%args;
         # recurse matching all-at-once is way simpler, we just need to collect
         # all the nodes, then complate against it.
         last unless $recurse && $recurse_matching eq 'all-at-once';
