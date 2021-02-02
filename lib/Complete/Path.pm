@@ -1,6 +1,8 @@
 package Complete::Path;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010001;
@@ -119,26 +121,22 @@ _
         #    schema  => 'str*',
         #},
         recurse => {
-            schema => ['int*', in=>1, 2],
-            description => <<'_',
-
-If set to 1 or 2, will recurse paths. If set to 2, will perform matching of word
-against the whole tree instead of level-by-level.
-
-Note that in recurse mode, leaf digging is not done.
-
-_
+            schema => 'bool*',
+            cmdline_aliases => {r=>{}},
+        },
+        recurse_matching => {
+            schema => ['str*', in=>['level-by-level', 'all-at-once']],
+            default => 'level-by-level',
         },
         exclude_leaf => {
             schema => 'bool*',
         },
-        exclude_nonleaf => {
-            schema => 'bool*',
-        },
         exclude_dir => {
-            summary => 'Alias for exclude_nonleaf option',
             schema => 'bool*',
         },
+    },
+    args_rels => {
+        dep_all => [recurse_matching => ['recurse']],
     },
     result_naked => 1,
     result => {
@@ -157,8 +155,9 @@ sub complete_path {
     my $result_prefix = $args{result_prefix};
     my $starting_path = $args{starting_path} // '';
     my $recurse = $args{recurse};
+    my $recurse_matching = $args{recurse_matching} // 'level-by-level';
     my $exclude_leaf = $args{exclude_leaf};
-    my $exclude_nonleaf = $args{exclude_nonleaf} // $args{exclude_dir};
+    my $exclude_dir  = $args{exclude_dir};
 
     my $ci          = $Complete::Common::OPT_CI;
     my $word_mode   = $Complete::Common::OPT_WORD_MODE;
@@ -168,6 +167,68 @@ sub complete_path {
     my $dig_leaf    = $Complete::Common::OPT_DIG_LEAF;
 
     my $re_ends_with_path_sep = qr!\A\z|\Q$path_sep\E\z!;
+
+    my @res;
+
+    my $cut_chars;
+    if (defined $args{_cut_chars}) {
+        $cut_chars = $args{_cut_chars};
+    } else {
+        $cut_chars = 0;
+        if (length($starting_path)) {
+            $cut_chars += length($starting_path);
+            unless ($starting_path =~ /\Q$path_sep\E\z/) {
+                $cut_chars += length($path_sep);
+            }
+        }
+    }
+
+  RECURSE_MATCHING_ALL_AT_ONCE: {
+        use DD; dd \%args;
+        # recurse matching all-at-once is way simpler, we just need to collect
+        # all the nodes, then complate against it.
+        last unless $recurse && $recurse_matching eq 'all-at-once';
+        my @dirs = ($starting_path);
+        while (@dirs) {
+            my $dir = shift @dirs;
+            my $listres = $list_func->($dir, '', 0);
+            next unless $listres && @$listres;
+          L1:
+            for my $e (@$listres) {
+                my $p = $dir =~ $re_ends_with_path_sep ?
+                    "$dir$e" : "$dir$path_sep$e";
+
+                {
+                    local $_ = $p; # convenience for filter func
+                    next L1 if $filter_func && !$filter_func->($p);
+                }
+
+                my $is_dir;
+                if ($e =~ $re_ends_with_path_sep) {
+                    $is_dir = 1;
+                } else {
+                    local $_ = $p; # convenience for is_dir_func
+                    $is_dir = $is_dir_func->($p);
+                }
+
+                if ($is_dir) { push @dirs, $p }
+
+                # format result
+                $p = "$result_prefix$p" if length($result_prefix);
+                substr($p, 0, $cut_chars) = '' if $cut_chars;
+                unless ($p =~ /\Q$path_sep\E\z/) {
+                    $p .= $path_sep if $is_dir;
+                }
+
+                push @res, $p unless ($is_dir && $exclude_dir) || (!$is_dir && $exclude_leaf);
+            } # entry
+        } # while dirs
+        @res = @{ Complete::Util::complete_array_elem(
+            array => \@res,
+            word  => $word,
+        ) };
+        goto RETURN_RESULT;
+    }
 
     # split word by into path elements, as we want to dig level by level (needed
     # when doing case-insensitive search on a case-sensitive tree).
@@ -251,20 +312,6 @@ sub complete_path {
     }
     log_trace "[comppath] candidate paths: %s", \@candidate_paths if $ENV{COMPLETE_PATH_TRACE};
 
-    my $cut_chars;
-    if (defined $args{_cut_chars}) {
-        $cut_chars = $args{_cut_chars};
-    } else {
-        $cut_chars = 0;
-        if (length($starting_path)) {
-            $cut_chars += length($starting_path);
-            unless ($starting_path =~ /\Q$path_sep\E\z/) {
-                $cut_chars += length($path_sep);
-            }
-        }
-    }
-
-    my @res;
     for my $dir (@candidate_paths) {
         #say "D:opendir($dir)";
         my $listres = $list_func->($dir, $leaf, 0);
@@ -326,11 +373,12 @@ sub complete_path {
             unless ($p =~ /\Q$path_sep\E\z/) {
                 $p .= $path_sep if $is_dir;
             }
-            push @res, $p unless ($is_dir && $exclude_nonleaf) || (!$is_dir && $exclude_leaf);
+            push @res, $p unless ($is_dir && $exclude_dir) || (!$is_dir && $exclude_leaf);
             push @res, @subres;
         }
     }
 
+  RETURN_RESULT:
     \@res;
 }
 1;
