@@ -1,3 +1,8 @@
+0.250   2021-02-02  Released-By: PERLANCAR; Urgency: medium
+
+	- [experimental] Add experimental option: recurse.
+
+
 0.24    2017-07-03  Released-By: PERLANCAR
 
         - No functional changes.
@@ -153,4 +158,3 @@
           Complete::Module, Complete::Riap, and others in the future whenever we
           need ci/exp_im_path/map_case/... options when completing anything
           path-like.
-
