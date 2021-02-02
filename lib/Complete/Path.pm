@@ -6,6 +6,7 @@ package Complete::Path;
 use 5.010001;
 use strict;
 use warnings;
+use Log::ger;
 
 use Complete::Common qw(:all);
 
@@ -117,6 +118,14 @@ _
         #    summary => 'Prefix each result with this string',
         #    schema  => 'str*',
         #},
+        recurse => {
+            schema => 'bool*',
+            description => <<'_',
+
+Note that in recurse mode, leaf digging is not done.
+
+_
+        },
     },
     result_naked => 1,
     result => {
@@ -134,6 +143,7 @@ sub complete_path {
     my $filter_func = $args{filter_func};
     my $result_prefix = $args{result_prefix};
     my $starting_path = $args{starting_path} // '';
+    my $recurse = $args{recurse};
 
     my $ci          = $Complete::Common::OPT_CI;
     my $word_mode   = $Complete::Common::OPT_WORD_MODE;
@@ -224,12 +234,18 @@ sub complete_path {
         return [] unless @new_candidate_paths;
         @candidate_paths = @new_candidate_paths;
     }
+    log_trace "[comppath] candidate paths: %s", \@candidate_paths if $ENV{COMPLETE_PATH_TRACE};
 
-    my $cut_chars = 0;
-    if (length($starting_path)) {
-        $cut_chars += length($starting_path);
-        unless ($starting_path =~ /\Q$path_sep\E\z/) {
-            $cut_chars += length($path_sep);
+    my $cut_chars;
+    if (defined $args{_cut_chars}) {
+        $cut_chars = $args{_cut_chars};
+    } else {
+        $cut_chars = 0;
+        if (length($starting_path)) {
+            $cut_chars += length($starting_path);
+            unless ($starting_path =~ /\Q$path_sep\E\z/) {
+                $cut_chars += length($path_sep);
+            }
         }
     }
 
@@ -247,7 +263,6 @@ sub complete_path {
         for my $e (@$matches) {
             my $p = $dir =~ $re_ends_with_path_sep ?
                 "$dir$e" : "$dir$path_sep$e";
-            #say "D:p=$p";
             {
                 local $_ = $p; # convenience for filter func
                 next L1 if $filter_func && !$filter_func->($p);
@@ -261,20 +276,31 @@ sub complete_path {
                 $is_dir = $is_dir_func->($p);
             }
 
-            if ($is_dir && $dig_leaf) {
-                {
-                    my $p2 = _dig_leaf($p, $list_func, $is_dir_func, $filter_func, $path_sep);
-                    last if $p2 eq $p;
-                    $p = $p2;
-                    #say "D:p=$p (dig_leaf)";
+            my @subres;
+            if ($is_dir) {
+                if ($recurse) {
+                    @subres = @{complete_path(
+                        %args,
+                        starting_path => $p,
+                        word => '',
+                        _cut_chars => $cut_chars,
+                    )};
+                } elsif ($dig_leaf) {
+                  DIG_LEAF:
+                    {
+                        my $p2 = _dig_leaf($p, $list_func, $is_dir_func, $filter_func, $path_sep);
+                        last DIG_LEAF if $p2 eq $p;
+                        $p = $p2;
+                        #say "D:p=$p (dig_leaf)";
 
-                    # check again
-                    if ($p =~ $re_ends_with_path_sep) {
-                        $is_dir = 1;
-                    } else {
-                        local $_ = $p; # convenience for is_dir_func
-                        $is_dir = $is_dir_func->($p);
-                    }
+                        # check again
+                        if ($p =~ $re_ends_with_path_sep) {
+                            $is_dir = 1;
+                        } else {
+                            local $_ = $p; # convenience for is_dir_func
+                            $is_dir = $is_dir_func->($p);
+                        }
+                    } # DIG_LEAF
                 }
             }
 
@@ -285,7 +311,7 @@ sub complete_path {
             unless ($p =~ /\Q$path_sep\E\z/) {
                 $p .= $path_sep if $is_dir;
             }
-            push @res, $p;
+            push @res, $p, @subres;
         }
     }
 
