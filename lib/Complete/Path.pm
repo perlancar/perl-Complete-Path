@@ -1,16 +1,16 @@
 package Complete::Path;
 
-# AUTHORITY
-# DATE
-# DIST
-# VERSION
-
 use 5.010001;
 use strict;
 use warnings;
 use Log::ger;
 
 use Complete::Common qw(:all);
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
 
 our $COMPLETE_PATH_TRACE = $ENV{COMPLETE_PATH_TRACE} // 0;
 
